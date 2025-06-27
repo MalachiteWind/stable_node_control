@@ -1,3 +1,3 @@
 Work being done for PNNL stable node control
 
-Learning Stables NODEs
+Learning Stables NODEs with RKHS approach.
