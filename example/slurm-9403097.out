@@ -1,0 +1,4 @@
+Now you should run one of the following depending on your shell
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.sh
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.csh
+slurmstepd: error: *** JOB 9403097 ON dl10 CANCELLED AT 2025-06-23T14:09:50 DUE TO TIME LIMIT ***

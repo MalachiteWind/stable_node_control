@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A atscale
-#SBATCH -t 00:05:00
+#SBATCH -t 02:00:00
 #SBATCH -p dl_shared
 #SBATCH -J hello_world
 #SBATCH --gres=gpu:1
