@@ -2,3 +2,4 @@
 __pycache__/
 commit.txt
 .venv
+*.egg-info
