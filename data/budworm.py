@@ -1,4 +1,7 @@
-from utils import _load_wrapper
+from .utils import _load_wrapper
+
+from scipy.integrate import solve_ivp
+import numpy as np
 
 def budworm_ode(t,x,r,k):
     return r*(1-x/k) - x / (1+x**2)
