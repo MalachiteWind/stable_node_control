@@ -1,4 +1,5 @@
 from .utils import _load_wrapper
+from typing import Tuple
 
 from scipy.integrate import solve_ivp
 import numpy as np
@@ -7,7 +8,7 @@ import numpy as np
 def hysteresis_ode(t,x,lam):
     return lam+x-x**3
     
-def simulate_steady_state(lam_values, x0, simulate_time:tuple[float, float],show_progress: bool = True):
+def simulate_steady_state(lam_values, x0, simulate_time:Tuple[float, float],show_progress: bool = True):
     """
     lam_values: control params 
     x0: initial state observation
