@@ -1,0 +1,8 @@
+python/miniconda24.4.0(16):ERROR:150: Module 'python/miniconda24.4.0' conflicts with the currently loaded module(s) 'python/miniconda4.12'
+python/miniconda24.4.0(16):ERROR:102: Tcl command execution failed: conflict python
+
+Traceback (most recent call last):
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/train_model.py", line 103, in <module>
+    parser = argparse.ArgumentParser()
+             ^^^^^^^^
+NameError: name 'argparse' is not defined

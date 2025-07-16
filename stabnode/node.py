@@ -12,7 +12,7 @@ from torchdiffeq import odeint
 
 from pathlib import Path
 from typing import Optional, Callable, Tuple
-from .utils import _load_wrapper
+from .utils import _load_loop_wrapper
 
 def set_global_seed(seed): 
     torch.manual_seed(seed)
@@ -106,7 +106,7 @@ def _save_model_opt_cpu(model:StabNODE, opt, epoch, loss, save_path:str):
         save_path)
 
 def _load_model_opt(save_path:str, device:str = 'cpu'):
-    config = torch.load(save_path, map_location='cpu')
+    config = torch.load(save_path, map_location='cpu',weights_only=False)
 
     f = FTerm(**config["f_args"])
     g = GTerm(**config["g_args"])
@@ -182,7 +182,7 @@ def model_trainer(
         save_path: Optional[str] = None
 ) -> Tuple[StabNODE,dict]:
 
-    wrapper = _load_wrapper(show_progress)
+    loop_wrapper = _load_loop_wrapper(show_progress)
     model_opt_save_path, log_save_path = _create_save_paths(save_path)
 
     best_loss = torch.inf
@@ -197,7 +197,7 @@ def model_trainer(
     method_failures = []
     patience_hist = []
     
-    for epoch in wrapper(range(n_epochs)):
+    for epoch in loop_wrapper(range(n_epochs)):
         t1 = time.time()
         opt.zero_grad()
 
