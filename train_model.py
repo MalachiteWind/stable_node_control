@@ -14,6 +14,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tqdm.auto import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device='cpu'
 
 
 

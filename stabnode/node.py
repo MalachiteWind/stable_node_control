@@ -22,7 +22,7 @@ def set_global_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 class FTerm(nn.Module):
-    def __init__(self,dim_in, dim_out, hidden_dim = 4):
+    def __init__(self,dim_in, dim_out, hidden_dim = 2):
         super().__init__()
         self.network = nn.Sequential(
             nn.Linear(dim_in, hidden_dim),
@@ -41,7 +41,7 @@ class FTerm(nn.Module):
 
 
 class GTerm(nn.Module):
-    def __init__(self, dim_in, dim_out, hidden_dim = 4):
+    def __init__(self, dim_in, dim_out, hidden_dim = 2):
         super().__init__()
         self.network = nn.Sequential(
             nn.Linear(dim_in, hidden_dim),
