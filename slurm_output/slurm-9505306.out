@@ -1,0 +1,5 @@
+python/miniconda24.4.0(16):ERROR:150: Module 'python/miniconda24.4.0' conflicts with the currently loaded module(s) 'python/miniconda4.12'
+python/miniconda24.4.0(16):ERROR:102: Tcl command execution failed: conflict python
+
+/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/stabnode/node.py:221: UserWarning: rk4 failure. Using fallback method 'dopri5'. Error: NaN in ODE Solution.
+  warnings.warn(f"{solve_method} failure. Using fallback method 'dopri5'. Error: {e}")

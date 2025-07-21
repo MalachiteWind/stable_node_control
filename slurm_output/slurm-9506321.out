@@ -1,0 +1,12 @@
+Now you should run one of the following depending on your shell
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.sh
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.csh
+/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/stabnode/node.py:221: UserWarning: rk4 failure. Using fallback method 'dopri5'. Error: NaN in ODE Solution.
+  warnings.warn(f"{solve_method} failure. Using fallback method 'dopri5'. Error: {e}")
+/tmp/slurmd/job9506321/slurm_script: line 20: echo: write error: Stale file handle
+/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/stabnode/node.py:221: UserWarning: rk4 failure. Using fallback method 'dopri5'. Error: NaN in ODE Solution.
+  warnings.warn(f"{solve_method} failure. Using fallback method 'dopri5'. Error: {e}")
+/tmp/slurmd/job9506321/slurm_script: line 23: echo: write error: Stale file handle
+/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/stabnode/node.py:221: UserWarning: rk4 failure. Using fallback method 'dopri5'. Error: NaN in ODE Solution.
+  warnings.warn(f"{solve_method} failure. Using fallback method 'dopri5'. Error: {e}")
+slurmstepd: error: *** JOB 9506321 ON dc028 CANCELLED AT 2025-07-16T20:38:17 DUE TO TIME LIMIT ***
