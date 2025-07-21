@@ -12,7 +12,7 @@ source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.sh
 conda deactivate
 conda activate atscale
 
-echo "Starting experiment with sample_rate=20"
-python train_model.py --seed 1234 --sample_rate 20 --lr 1e-1 --n_epochs 300 --hidden_dim 2 --patience 100 --folder "results/july_17"
+echo "Starting experiment with sample_rate=40"
+python train_model.py --seed 1234 --sample_rate 40 --lr 1e-1 --n_epochs 300 --hidden_dim 2 --patience 100 --folder "results/july_17"
 
 echo "All experiments finished."

@@ -97,7 +97,7 @@ def main(seed = 1234,sample_rate=10, lr=1e-2,n_epochs=100, hidden_dim = 2, patie
                   min_improvement=1e-4,
                   patience=patience,
                   print_every=10,
-                  solve_method='rk4',
+                  solve_method='dopri5',
                   show_progress=False,
                   save_path=save_path)
 
