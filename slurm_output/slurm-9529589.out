@@ -1,0 +1,3 @@
+Now you should run one of the following depending on your shell
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.sh
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.csh

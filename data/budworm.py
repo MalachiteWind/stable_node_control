@@ -4,7 +4,7 @@ from scipy.integrate import solve_ivp
 import numpy as np
 
 def budworm_ode(t,x,r,k):
-    return r*(1-x/k) - x / (1+x**2)
+    return r*x*(1-x/k) - x**2 / (1+x**2)
 
 
 def simulate_steady_state(k_vals, x0,show_progress:bool = True):
@@ -15,7 +15,7 @@ def simulate_steady_state(k_vals, x0,show_progress:bool = True):
     r=0.56
     x_vals = []
     x_curr = x0
-    for k in tqdm(k_vals):
+    for k in wrapper(k_vals):
         sol = solve_ivp(budworm_ode, t_span=t_span, y0=[x_curr],args = (r,k,), t_eval=t_eval)
         x_curr = sol.y[0,-1]
         x_vals.append(x_curr)
