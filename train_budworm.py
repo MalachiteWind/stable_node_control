@@ -62,8 +62,8 @@ def main(seed = 1234,noise=0.0,sample_rate=10, lr=1e-2,n_epochs=100, f_dim = 2,g
     k_increase = np.linspace(k_start,k_end, n_points)
     k_decrease = np.linspace(k_increase[-1],k_start,n_points)
 
-    x_increase = simulate_steady_state(k_increase,x0=x0)
-    x_decrease = simulate_steady_state(k_decrease, x0=x_increase[-1])
+    x_increase = simulate_steady_state(k_increase,x0=x0, show_progress=False)
+    x_decrease = simulate_steady_state(k_decrease, x0=x_increase[-1], show_progress=False)
 
     X = np.hstack((x_increase,x_decrease))
     K = np.hstack((k_increase, k_decrease))
@@ -120,7 +120,7 @@ def main(seed = 1234,noise=0.0,sample_rate=10, lr=1e-2,n_epochs=100, f_dim = 2,g
                   min_improvement=1e-4,
                   patience=patience,
                   print_every=10,
-                  solve_method='rk4',
+                  solve_method='dopri5',
                   show_progress=False,
                   save_path=save_path)
 

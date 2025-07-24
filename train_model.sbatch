@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -A atscale
 #SBATCH -t 20:00:00
-#SBATCH -p slurm
+#SBATCH -p dl_shared
 #SBATCH -J sample_size_exp
-#SBATCH --gres=gpu:0
+#SBATCH --gres=gpu:1
 #SBATCH -N 1
 #SBATCH -e slurm_output/slurm-%j.out
 #SBATCH -o slurm_output/output-%j.out
@@ -26,17 +26,18 @@ echo "Using Python version:"
 python --version
 echo "Using Conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"
 
+
+
 # Start your experiment
-echo "Starting experiment with noise=0.1"
-python train_budworm.py --seed 1234 --noise 0.1 --sample_rate 10 --lr 1e-1 --n_epochs 300 --f_dim 6 --g_dim 2 --patience 100 --folder "results/july_22"
-echo "Finished."
 
 echo "Starting experiment with noise=0.05"
-python train_budworm.py --seed 1234 --noise 0.05 --sample_rate 10 --lr 1e-1 --n_epochs 300 --f_dim 6 --g_dim 2 --patience 100 --folder "results/july_22"
+python train_budworm.py --seed 1234 --noise 0.05 --sample_rate 10 --lr 1e-1 --n_epochs 300 --f_dim 6 --g_dim 2 --patience 100 --folder "results/july_23"
+echo "Finished."
+
+echo "Starting experiment with noise=0.1"
+python train_budworm.py --seed 1234 --noise 0.1 --sample_rate 10 --lr 1e-1 --n_epochs 300 --f_dim 6 --g_dim 2 --patience 100 --folder "results/july_23"
 echo "Finished."
 
 echo "Starting experiment with noise=0.2"
-python train_budworm.py --seed 1234 --noise 0.2 --sample_rate 10 --lr 1e-1 --n_epochs 300 --f_dim 6 --g_dim 2 --patience 100 --folder "results/july_22"
-echo "Finished."
-
+python train_budworm.py --seed 1234 --noise 0.2 --sample_rate 10 --lr 1e-1 --n_epochs 300 --f_dim 6 --g_dim 2 --patience 100 --folder "results/july_23"
 echo "All experiments finished."

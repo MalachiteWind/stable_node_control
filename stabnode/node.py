@@ -289,15 +289,6 @@ def model_trainer(
             best_model_epoch = epoch
             if save_path is not None:
                 _save_model_opt_cpu(model,opt,best_model_epoch,best_loss,model_opt_save_path)
-                _ =  _save_log_history(
-                        losses, 
-                        times, 
-                        "best-model-checkpoint", 
-                        best_model_epoch, 
-                        method_failures,
-                        patience_hist,
-                        log_save_path
-                    )
         else:
             patience_counter += 1
         
@@ -308,7 +299,17 @@ def model_trainer(
             if show_progress is not None:
                 print(f"Patience exceeded: {patience} . Early stoppage executed.")
             break
-    
+        if save_path is not None:
+            _=_save_log_history(
+                losses,
+                times,
+                f"checkpoint-{epoch}",
+                best_model_epoch,
+                method_failures,
+                patience_hist,
+                log_save_path
+            )
+        
     log_history = _save_log_history(
         losses, 
         times, 
