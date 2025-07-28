@@ -4,3 +4,6 @@ Using Conda environment: atscale
 Starting experiment with noise=0.05
 Finished.
 Starting experiment with noise=0.1
+Finished.
+Starting experiment with noise=0.2
+All experiments finished.
