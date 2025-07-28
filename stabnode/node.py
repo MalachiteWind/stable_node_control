@@ -40,6 +40,44 @@ class FTerm(nn.Module):
         return - torch.exp(self.network(x))
 
 
+class Gelu(nn.Module):
+    def __init__(self, dim_in, dim_out, hidden_dim = 2):
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(dim_in, hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, dim_out),
+            nn.Tanh(),
+        )
+        self.args = {
+            "dim_in": dim_in,
+            "dim_out": dim_out,
+            "hidden_dim": hidden_dim
+        }
+
+    def forward(self, x, u):
+        xu = torch.cat([x,u],dim=-1)
+        return self.network(xu)
+
+
+class Felu(nn.Module):
+    def __init__(self,dim_in, dim_out, hidden_dim = 2):
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(dim_in, hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, dim_out),
+        )
+        self.args = {
+            "dim_in": dim_in, 
+            "dim_out": dim_out, 
+            "hidden_dim": hidden_dim
+        }
+        
+    def forward(self,x):
+        return - torch.exp(self.network(x))
+
+
 class GTerm(nn.Module):
     def __init__(self, dim_in, dim_out, hidden_dim = 2):
         super().__init__()
@@ -258,8 +296,20 @@ def model_trainer(
 
         if patience_counter > patience:
             stopping_criteria = "early-stoppage"
+            if show_progress is not None:
+                print(f"Patience exceeded: {patience} . Early stoppage executed.")
             break
-    
+        if save_path is not None:
+            _=_save_log_history(
+                losses,
+                times,
+                f"checkpoint-{epoch}",
+                best_model_epoch,
+                method_failures,
+                patience_hist,
+                log_save_path
+            )
+        
     log_history = _save_log_history(
         losses, 
         times, 

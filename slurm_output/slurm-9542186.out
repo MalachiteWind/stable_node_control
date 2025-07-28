@@ -1,0 +1,69 @@
+Now you should run one of the following depending on your shell
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.sh
+source /share/apps/python/miniconda24.4.0/etc/profile.d/conda.csh
+Traceback (most recent call last):
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/train_budworm.py", line 140, in <module>
+    main(
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/train_budworm.py", line 111, in main
+    stab_node, log_history = model_trainer(
+                             ^^^^^^^^^^^^^^
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/stabnode/node.py", line 247, in model_trainer
+    X_pred = odeint(
+             ^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/odeint.py", line 80, in odeint
+    solution = solver.integrate(t)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/solvers.py", line 34, in integrate
+    solution[i] = self._advance(t[i])
+                  ^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/rk_common.py", line 246, in _advance
+    self.rk_state = self._adaptive_step(self.rk_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/rk_common.py", line 284, in _adaptive_step
+    assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
+           ^^^^^^^^^^^^
+AssertionError: underflow in dt 0.0
+Traceback (most recent call last):
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/train_budworm.py", line 140, in <module>
+    main(
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/train_budworm.py", line 111, in main
+    stab_node, log_history = model_trainer(
+                             ^^^^^^^^^^^^^^
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/stabnode/node.py", line 247, in model_trainer
+    X_pred = odeint(
+             ^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/odeint.py", line 80, in odeint
+    solution = solver.integrate(t)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/solvers.py", line 34, in integrate
+    solution[i] = self._advance(t[i])
+                  ^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/rk_common.py", line 246, in _advance
+    self.rk_state = self._adaptive_step(self.rk_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/rk_common.py", line 284, in _adaptive_step
+    assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
+           ^^^^^^^^^^^^
+AssertionError: underflow in dt 0.0
+Traceback (most recent call last):
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/train_budworm.py", line 140, in <module>
+    main(
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/train_budworm.py", line 111, in main
+    stab_node, log_history = model_trainer(
+                             ^^^^^^^^^^^^^^
+  File "/qfs/projects/atscale/atscale_dyn/Code/Ike/stable_node_control/stabnode/node.py", line 247, in model_trainer
+    X_pred = odeint(
+             ^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/odeint.py", line 80, in odeint
+    solution = solver.integrate(t)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/solvers.py", line 34, in integrate
+    solution[i] = self._advance(t[i])
+                  ^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/rk_common.py", line 246, in _advance
+    self.rk_state = self._adaptive_step(self.rk_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/people/gris332/.conda/envs/atscale/lib/python3.11/site-packages/torchdiffeq/_impl/rk_common.py", line 284, in _adaptive_step
+    assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
+           ^^^^^^^^^^^^
+AssertionError: underflow in dt 0.0
