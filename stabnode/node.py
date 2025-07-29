@@ -106,7 +106,7 @@ class StabNODE(nn.Module):
 
     def forward(self, t, state, u_func):
         x = state
-        u = u_func(t).unsqueeze(0).unsqueeze(1)
+        u = u_func(t).unsqueeze(0)
         fx = self.f(x)
         gx = self.g(x,u)
         return fx*(x-gx)
