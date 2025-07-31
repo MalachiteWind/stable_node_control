@@ -234,7 +234,7 @@ def model_trainer(
     times = []
     method_failures = []
     patience_hist = []
-    
+    model.train()
     for epoch in loop_wrapper(range(n_epochs)):
         t1 = time.time()
         opt.zero_grad()
