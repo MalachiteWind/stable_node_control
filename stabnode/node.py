@@ -14,31 +14,6 @@ from pathlib import Path
 from typing import Optional, Callable, Tuple
 from .utils import _load_loop_wrapper
 
-def set_global_seed(seed): 
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-class FTerm(nn.Module):
-    def __init__(self,dim_in, dim_out, hidden_dim = 2):
-        super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(dim_in, hidden_dim),
-            nn.Tanh(),
-            nn.Linear(hidden_dim, dim_out),
-            nn.Tanh(),
-        )
-        self.args = {
-            "dim_in": dim_in, 
-            "dim_out": dim_out, 
-            "hidden_dim": hidden_dim
-        }
-        
-    def forward(self,x):
-        return - torch.exp(self.network(x))
-
 
 class Gelu(nn.Module):
     def __init__(self, dim_in, dim_out, hidden_dim = 2):
@@ -78,129 +53,18 @@ class Felu(nn.Module):
         return - torch.exp(self.network(x))
 
 
-class GTerm(nn.Module):
-    def __init__(self, dim_in, dim_out, hidden_dim = 2):
-        super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(dim_in, hidden_dim),
-            nn.Tanh(),
-            nn.Linear(hidden_dim, dim_out),
-            nn.Tanh(),
-        )
-        self.args = {
-            "dim_in": dim_in,
-            "dim_out": dim_out,
-            "hidden_dim": hidden_dim
-        }
-
-    def forward(self, x, u):
-        xu = torch.cat([x,u],dim=-1)
-        return self.network(xu)
-
-
 class StabNODE(nn.Module):
-    def __init__(self,f:FTerm,g:GTerm):
+    def __init__(self,f:Felu,g:Gelu):
         super().__init__()
         self.f = f
         self.g = g
 
     def forward(self, t, state, u_func):
         x = state
-        u = u_func(t).unsqueeze(0).unsqueeze(1)
+        u = u_func(t).unsqueeze(0)
         fx = self.f(x)
         gx = self.g(x,u)
         return fx*(x-gx)
-
-
-def _save_model_opt_cpu(model:StabNODE, opt, epoch, loss, save_path:str):
-    device = next(model.parameters()).device.type
-    f = model.f
-    g = model.g
-    f_args = f.args
-    g_args = g.args
-
-    if device  == "cpu":
-        f_state = f.state_dict()
-        g_state = g.state_dict()
-        model_state = model.state_dict()
-    else:
-        f_cpu = copy.deepcopy(f).to('cpu')
-        g_cpu = copy.deepcopy(g).to('cpu')
-        model_cpu = StabNODE(f_cpu,g_cpu).to('cpu')
-
-        f_state = f_cpu.state_dict()
-        g_state = g_cpu.state_dict()
-        model_state = model_cpu.state_dict()
-
-    torch.save({
-        "f_state_dict": f_state,
-        "g_state_dict": g_state,
-        "stabnode_state_dict": model_state,
-        "f_args": f_args,
-        "g_args":g_args,
-        "opt_state_dict": opt.state_dict(),
-        "epoch": epoch,
-        "loss": loss},
-        save_path)
-
-def _load_model_opt(save_path:str, device:str = 'cpu'):
-    config = torch.load(save_path, map_location='cpu',weights_only=False)
-
-    f = FTerm(**config["f_args"])
-    g = GTerm(**config["g_args"])
-    model = StabNODE(f,g)
-
-    f.load_state_dict(config["f_state_dict"])
-    g.load_state_dict(config["g_state_dict"])
-    model.load_state_dict(config["stabnode_state_dict"])
-    model.to(device)
-
-    opt = torch.optim.Adam(model.parameters())
-    opt.load_state_dict(config["opt_state_dict"])
-
-    epoch = config["epoch"]
-    loss = config["loss"]
-
-    return model, opt, epoch, loss
-
-    
-
-def _save_log_history(
-        losses,
-        times,
-        stopping_criteria,
-        best_model_epoch,
-        method_failures,
-        patience_hist,
-        save_path:str = None,
-):
-    log_history = {
-        "losses": losses,
-        "times": times,
-        "stopping_criteria": stopping_criteria,
-        "best_model_epoch": best_model_epoch,
-        "method_failures": method_failures,
-        "patience_hist": patience_hist,
-    }
-
-    if save_path is not None:
-        with open(save_path, 'wb') as f: 
-            pickle.dump(log_history, f)
-    
-    return log_history
-
-def _create_save_paths(path):
-    if path is None:
-        return None, None
-    base_path = Path(path)
-    folder = base_path.parent
-
-    if not folder.exists():
-        folder.mkdir(parents=True, exist_ok=True)
-    
-    model_path = base_path
-    log_path = folder / (base_path.stem+ "_log.pkl")
-    return str(model_path), str(log_path)
 
 
 def model_trainer(
@@ -234,7 +98,7 @@ def model_trainer(
     times = []
     method_failures = []
     patience_hist = []
-    
+    model.train()
     for epoch in loop_wrapper(range(n_epochs)):
         t1 = time.time()
         opt.zero_grad()
@@ -256,7 +120,9 @@ def model_trainer(
             method_failures.append(False) 
             
         except ValueError as e:
-            warnings.warn(f"{solve_method} failure. Using fallback method 'dopri5'. Error: {e}")
+            warnings.warn(
+                f"{solve_method} failure. Using fallback method 'dopri5'. Error: {e}"
+            )
             X_pred = odeint(lambda t, x: model(t,x,control), x0, tau_span, method='dopri5')
             method_failures.append(True)
         
@@ -322,3 +188,91 @@ def model_trainer(
 
     return model, log_history
 
+
+def _save_model_opt_cpu(model:StabNODE, opt, epoch, loss, save_path:str):
+    device = next(model.parameters()).device.type
+    f = model.f
+    g = model.g
+    f_args = f.args
+    g_args = g.args
+
+    if device  == "cpu":
+        f_state = f.state_dict()
+        g_state = g.state_dict()
+        model_state = model.state_dict()
+    else:
+        f_cpu = copy.deepcopy(f).to('cpu')
+        g_cpu = copy.deepcopy(g).to('cpu')
+        model_cpu = StabNODE(f_cpu,g_cpu).to('cpu')
+
+        f_state = f_cpu.state_dict()
+        g_state = g_cpu.state_dict()
+        model_state = model_cpu.state_dict()
+
+    torch.save({
+        "f_state_dict": f_state,
+        "g_state_dict": g_state,
+        "stabnode_state_dict": model_state,
+        "f_args": f_args,
+        "g_args":g_args,
+        "opt_state_dict": opt.state_dict(),
+        "epoch": epoch,
+        "loss": loss},
+        save_path)
+
+def _load_model_opt(save_path:str, device:str = 'cpu'):
+    config = torch.load(save_path, map_location='cpu',weights_only=False)
+
+    f = Felu(**config["f_args"])
+    g = Gelu(**config["g_args"])
+    model = StabNODE(f,g)
+
+    f.load_state_dict(config["f_state_dict"])
+    g.load_state_dict(config["g_state_dict"])
+    model.load_state_dict(config["stabnode_state_dict"])
+    model.to(device)
+
+    opt = torch.optim.Adam(model.parameters())
+    opt.load_state_dict(config["opt_state_dict"])
+
+    epoch = config["epoch"]
+    loss = config["loss"]
+
+    return model, opt, epoch, loss
+
+def _save_log_history(
+        losses,
+        times,
+        stopping_criteria,
+        best_model_epoch,
+        method_failures,
+        patience_hist,
+        save_path:str = None,
+):
+    log_history = {
+        "losses": losses,
+        "times": times,
+        "stopping_criteria": stopping_criteria,
+        "best_model_epoch": best_model_epoch,
+        "method_failures": method_failures,
+        "patience_hist": patience_hist,
+    }
+
+    if save_path is not None:
+        with open(save_path, 'wb') as f: 
+            pickle.dump(log_history, f)
+    
+    return log_history
+
+def _create_save_paths(path):
+    if path is None:
+        return None, None
+    base_path = Path(path)
+    folder = base_path.parent
+
+    if not folder.exists():
+        folder.mkdir(parents=True, exist_ok=True)
+    
+    model_path = base_path
+    log_path = folder / (base_path.stem+ "_log.pkl")
+    return str(model_path), str(log_path)
