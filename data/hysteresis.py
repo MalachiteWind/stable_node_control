@@ -68,7 +68,7 @@ def simulate_steady_state(
             lam_vals = np.hstack((lam_vals,lam_i[shift:]))
             t_vals = np.hstack((t_vals,t_eval[shift:] + t_eval[-1]*idx))
 
-    x_vals = torch.tensor(x_vals, dtype=torch.float32,device=device)
-    lam_vals = torch.tensor(lam_vals, dtype=torch.float32,device=device)    
-    t_vals = torch.tensor(t_vals, dtype=torch.float32,device=device)
+    x_vals = torch.tensor(x_vals, dtype=torch.float64,device=device)
+    lam_vals = torch.tensor(lam_vals, dtype=torch.float64,device=device)    
+    t_vals = torch.tensor(t_vals, dtype=torch.float64,device=device)
     return x_vals, lam_vals, t_vals
