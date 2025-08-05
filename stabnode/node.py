@@ -59,12 +59,19 @@ class StabNODE(nn.Module):
         self.f = f
         self.g = g
 
-    def forward(self, t, state, u_func):
-        x = state
-        u = u_func(t).unsqueeze(0)
-        fx = self.f(x)
-        gx = self.g(x,u)
-        return fx*(x-gx)
+    def forward(self, t, x, u_func):
+        """
+        t: scalar or shape [B]
+        x: shape [B, d]
+        """
+        u = u_func(t)  # shape [B, d_u]
+        if x.dim() == 1:
+            x = x.unsqueeze(0)  # [1, d]
+        if u.dim() == 1:
+            u = u.unsqueeze(0)  # [1, d_u]
+        fx = self.f(x)          # shape [B, d]
+        gx = self.g(x, u)       # shape [B, d]
+        return fx * (x - gx)    # shape [B, d]
 
 
 def model_trainer(
