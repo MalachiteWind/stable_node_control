@@ -15,7 +15,8 @@ def simulate_steady_state(
     t_span:Tuple[float, float],
     t_eval: Optional[np.ndarray] = None,
     show_progress: bool = True,
-    device:str = 'cpu'
+    device:str = 'cpu',
+    dtype:Optional[torch.dtype]=None
 )-> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Arguments:
@@ -67,8 +68,10 @@ def simulate_steady_state(
             x_vals = np.hstack((x_vals, sol.y[:,shift:]))
             lam_vals = np.hstack((lam_vals,lam_i[shift:]))
             t_vals = np.hstack((t_vals,t_eval[shift:] + t_eval[-1]*idx))
+    if dtype is None:
+        dtype = torch.float32
 
-    x_vals = torch.tensor(x_vals, dtype=torch.float64,device=device)
-    lam_vals = torch.tensor(lam_vals, dtype=torch.float64,device=device)    
-    t_vals = torch.tensor(t_vals, dtype=torch.float64,device=device)
+    x_vals = torch.tensor(x_vals, dtype=dtype,device=device)
+    lam_vals = torch.tensor(lam_vals, dtype=dtype,device=device)    
+    t_vals = torch.tensor(t_vals, dtype=dtype,device=device)
     return x_vals, lam_vals, t_vals
