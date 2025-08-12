@@ -4,3 +4,4 @@ commit.txt
 .venv
 *.egg-info
 todo
+.DS_Store
