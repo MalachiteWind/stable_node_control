@@ -15,6 +15,7 @@ def f_true(x):
 
 def g_true(x,k,r):
     return -(r/k)*x**3 + r*x**2 -(r/k)*x +r 
+
 def dg_true(x,k,r):
     return -2*(r/k)*x**2 + 2*r*x - (r/k)
 
