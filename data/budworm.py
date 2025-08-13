@@ -1,13 +1,131 @@
 from .utils import _load_wrapper
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 from scipy.integrate import solve_ivp
+from dataclasses import dataclass
 import numpy as np
 import torch
+
 
 def budworm_ode(t,x,r,k):
     return r*x*(1-x/k) - x**2 / (1+x**2)
 
+def f_true(x):
+    return -1*x / (1+x**2)
+
+def g_true(x,k,r):
+    return -(r/k)*x**3 + r*x**2 -(r/k)*x +r 
+def dg_true(x,k,r):
+    return -2*(r/k)*x**2 + 2*r*x - (r/k)
+
+def budworm_steady_states(k,r):
+    """
+    for a given k and r return real x such that 
+    g(x,k:r) = x
+
+    find roots of polynomial 
+    p(x) = g(x,k;r)-x = -r/k x^3 + rx^2 -(r/k+1)x+r
+    """
+    a = -r/k
+    b = r
+    c=-(r/k + 1)
+    d = r
+    roots = np.roots([a,b,c,d])
+
+    return sorted([r.real for r in roots if np.isreal(r)])
+
+def converging_steady_state(steady_states,x0):
+    """
+    Based on initial condtion x0, return steady state
+    that budworm system will converge to. 
+    """
+    if len(steady_states)==3:
+        if x0 < steady_states[1]:
+            return steady_states[0]
+        return steady_states[-1]
+    return steady_states[0]
+
+
+@dataclass
+class BudwormTrials:
+    x_vals: List
+    t_vals: List
+    k_vals: List
+    x_stars: List
+    t_stars: List
+    indices: List
+    dt: float
+
+    def __str__(self):
+        attrs = {
+            "x_vals": self.x_vals,
+            "t_vals": self.t_vals,
+            "k_vals": self.k_vals,
+            "x_stars": self.x_stars,
+            "t_stars": self.t_stars,
+            "indices": self.indices
+        }
+        lines = ["BudwormTrials contents:"]
+        for key, val in attrs.items():
+            lines.append(f"  {key}: (len={len(val)})")
+        lines.append(f"  dt: {self.dt}")
+        return "\n".join(lines)
+
+    __repr__ = __str__  
+
+
+def simulate_trials(ks, x0, dt, r,eps,buffer, t_max, n_points,show_progress:bool=True):
+    x_curr = x0
+
+    x_vals = []
+    t_vals = []
+    x_stars = []
+    t_stars = []
+    indices = []
+
+    loop_wrapper = _load_wrapper(show_progress)
+    for k in loop_wrapper(ks):
+        # determine steady state
+        xs = budworm_steady_states(k,r)
+        x_star = converging_steady_state(xs,x_curr)
+
+        # find time to steady state
+        sol = solve_ivp(
+            budworm_ode,
+            t_span=[0,t_max],
+            y0=np.array([x_curr]),
+            t_eval=np.linspace(0,t_max,n_points),
+            args=(r,k)
+        )
+
+        idx_star = np.where(np.abs(sol.y[0,:] - x_star)<eps)[0][0]
+        
+        t_star = sol.t[idx_star]
+
+
+        t_end = t_star + buffer
+        t_span = [0,t_end]
+        t_eval = np.arange(0,t_end, dt)
+
+        
+        # Run simuilation until steady state
+        sol = solve_ivp(
+            fun=budworm_ode,
+            t_span=t_span,
+            y0=np.array([x_curr]),
+            t_eval=t_eval,
+            args=(r,k)
+        )
+        x_curr = sol.y[0,-1]
+        
+        indices.append(idx_star)
+        x_vals.append(sol.y[0,:])
+        t_vals.append(sol.t)
+        x_stars.append(x_star)
+        t_stars.append(t_star)
+    return BudwormTrials(
+        x_vals,t_vals,ks,x_stars, t_stars, indices,dt
+    )
 
 def simulate_steady_state(
     k_values: np.ndarray, 
