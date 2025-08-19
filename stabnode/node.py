@@ -52,6 +52,39 @@ class Felu(nn.Module):
     def forward(self,x):
         return - torch.exp(self.network(x))
 
+class GeluSigmoid(nn.Module):
+    def __init__(
+        self,
+        dim_in, 
+        dim_out, 
+        hidden_dim = 2,
+        lower_bound=0,
+        upper_bound=1
+    ):
+        super().__init__()
+
+        self.network = nn.Sequential(
+            nn.Linear(dim_in, hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, dim_out),
+        )
+
+        self.args = {
+            "dim_in": dim_in, 
+            "dim_out": dim_out, 
+            "hidden_dim": hidden_dim,
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound
+        }
+
+        def forward(self,x,u):
+            xu = torch.cat([x,u],dim=-1)
+            a = self.args['lower_bound']
+            b = self.args['upper_bound']
+
+            return a + (b-a)*torch.sigmoid(xu)
+
+
 class FeluSigmoid(nn.Module):
     def __init__(
             self,
