@@ -15,6 +15,36 @@ from pathlib import Path
 from typing import Optional, Callable, Tuple
 from .utils import _load_loop_wrapper
 
+class GConstant(nn.Module):
+    def __init__(self,lower_bound=0, upper_bound=1,initial_guess=0.0):
+        super().__init__()
+        self.constant_value = nn.Parameter(torch.tensor(initial_guess))
+        self.args = {
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound,
+            "initial_guess": initial_guess
+        }
+
+    def forward(self, x, u):
+        a = self.args["lower_bound"]
+        b = self.args["upper_bound"]
+        return a + (b-a)*torch.sigmoid(self.constant_value)
+
+class FConstant(nn.Module):
+    def __init__(self,lower_bound=0, upper_bound=1, initial_guess=0.0):
+        super().__init__()
+        self.constant_value = nn.Parameter(torch.tensor(initial_guess))
+        self.args = {
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound,
+            "initial_guess": initial_guess
+        }
+
+    def forward(self, x,):
+        a = self.args["lower_bound"]
+        b = self.args["upper_bound"]
+        return a + (b-a)*torch.sigmoid(self.constant_value)
+
 
 class Gelu(nn.Module):
     def __init__(self, dim_in, dim_out, hidden_dim = 2):
