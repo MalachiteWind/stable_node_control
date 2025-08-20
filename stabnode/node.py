@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 from torchdiffeq import odeint
+from torchode import solve_ivp
 
 
 from pathlib import Path
@@ -77,12 +78,12 @@ class GeluSigmoid(nn.Module):
             "upper_bound": upper_bound
         }
 
-        def forward(self,x,u):
-            xu = torch.cat([x,u],dim=-1)
-            a = self.args['lower_bound']
-            b = self.args['upper_bound']
+    def forward(self,x,u):
+        xu = torch.cat([x,u],dim=-1)
+        a = self.args['lower_bound']
+        b = self.args['upper_bound']
 
-            return a + (b-a)*torch.sigmoid(xu)
+        return a + (b-a)*torch.sigmoid(self.network(xu))
 
 
 class FeluSigmoid(nn.Module):
@@ -113,7 +114,7 @@ class FeluSigmoid(nn.Module):
     def forward(self,x):
         a = self.args["lower_bound"]
         b = self.args["upper_bound"]
-        return a + (b-a)*torch.sigmoid(x)
+        return a + (b-a)*torch.sigmoid(self.network(x))
 
 class StabNODE(nn.Module):
     def __init__(self,f:Felu,g:Gelu):
@@ -138,127 +139,139 @@ class StabNODE(nn.Module):
 
 def model_trainer(
         model: StabNODE,
-        opt: torch.optim.Optimizer, 
-        loss_criteria:Callable, 
-        x0:torch.Tensor,
-        tau_span:torch.Tensor, 
-        X_train:torch.Tensor,
-        control: Callable[[torch.Tensor], torch.Tensor], 
-        n_epochs: int, 
-        min_improvement: float, 
-        patience: int, 
-        print_every: int,
-        solve_method: str = "rk4",
-        show_progress: bool = True,
-        save_path: Optional[str] = None
-) -> Tuple[StabNODE,dict]:
-
+        opt: torch.optim.Optimizer,
+        loss_criteria: Callable,
+        train_loader: torch.utils.data.DataLoader,
+        n_epochs: int,
+        control: Callable[[torch.Tensor], torch.Tensor],
+        min_improvement:float,
+        patience: int,
+        solve_method: str='tsit5', 
+        save_folder: str|Path=None,
+        show_progress:bool=True,
+        scheduler: Optional[torch.optim.lr_scheduler._LRScheduler]=None,
+        print_every: int=5,
+        _precision: int = 4
+)-> Tuple[StabNODE,dict]:
+    
     loop_wrapper = _load_loop_wrapper(show_progress)
-    model_opt_save_path, log_save_path = _create_save_paths(save_path)
+    model_opt_save_path, log_save_path = _create_save_paths(save_folder)
 
     best_loss = torch.inf
-    patience_counter = 0 
-    stopping_criteria = "max-epochs"
+    patience_count = 0
     best_model_epoch = -1
-
-
+    stopping_criteria = 'max-epochs'
 
     losses = []
     times = []
-    method_failures = []
+    status = []
     patience_hist = []
+    lr_hist = []
     model.train()
     for epoch in loop_wrapper(range(n_epochs)):
         t1 = time.time()
-        opt.zero_grad()
+        epoch_loss = 0.0
+        num_batches = 0
+        epochs_status = []
+        
+        for Xi, Ti, x0i in train_loader:
+            Xi = Xi.squeeze() # [batch, time, dim]
+            Ti = Ti.squeeze()
+            x0i = x0i.reshape(-1,1)
 
-        # If solve_method causes numerical blowup,
-        # try more robust default method "dopri15".
+            if not x0i.requires_grad:
+                x0i = x0i.clone().detach().requires_grad_()
 
-        # forward pass
-        try:
-            X_pred = odeint(
-                lambda t, x: model(t,x,control),
-                x0, 
-                tau_span, 
+
+            opt.zero_grad()
+
+            sol = solve_ivp(
+                f=lambda t, x: model(t, x, control),
+                y0=x0i,
+                t_eval=Ti,
                 method=solve_method
             )
 
-            if torch.isnan(X_pred).any():
-                raise ValueError("NaN in ODE Solution.")
-            method_failures.append(False) 
-            
-        except ValueError as e:
-            warnings.warn(
-                f"{solve_method} failure. Using fallback method 'dopri5'. Error: {e}"
-            )
-            X_pred = odeint(lambda t, x: model(t,x,control), x0, tau_span, method='dopri5')
-            method_failures.append(True)
+            epochs_status.append(sol.status)
+            Xi_pred = sol.ys.squeeze()
+            loss = loss_criteria(Xi_pred, Xi)
+
+            loss.backward()
+            opt.step()
+            epoch_loss += loss.item()
+            num_batches += 1
+
         
-        loss = loss_criteria(X_pred.squeeze(), X_train.squeeze())
+        epoch_loss = epoch_loss / num_batches
+        if scheduler is not None:
+            scheduler.step(epoch_loss)
 
-        # backwards pass
-        loss.backward()
-        opt.step()
-
-        t2 = time.time()
-
-        # Record diagnostics
-        epoch_time = t2 - t1
-        epoch_loss = loss.item()
-
-        # patience_counter
-        # stopping_critiera: early-stoppage, max-iteration
+        cur_lr = opt.param_groups[0]['lr']
+        epoch_time = time.time() - t1
 
         losses.append(epoch_loss)
         times.append(epoch_time)
+        status.append(epochs_status)
+        lr_hist.append(cur_lr)
 
         if show_progress:
             if epoch <= 5 or epoch % print_every == 0:
-                print(f"Epoch {epoch}: Loss = {epoch_loss:.4f}, time = {epoch_time:.4f}")
+                print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}f}. time = {epoch_time:.{_precision}f}s. lr = {cur_lr:.{_precision}f}")    
         
-        # Check early stop criteria 
+        # model checks
         if best_loss - epoch_loss >= min_improvement:
             best_loss = epoch_loss
-            patience_counter = 0
+            patience_count = 0
             best_model_epoch = epoch
-            if save_path is not None:
-                _save_model_opt_cpu(model,opt,best_model_epoch,best_loss,model_opt_save_path)
-        else:
-            patience_counter += 1
-        
-        patience_hist.append(patience_counter)
 
-        if patience_counter > patience:
-            stopping_criteria = "early-stoppage"
+            if save_folder is not None:
+                _save_model_opt_cpu(
+                    model,
+                    opt,
+                    best_model_epoch,
+                    best_loss,
+                    model_opt_save_path,
+                    scheduler
+                )
+
+        else:
+            patience_count += 1
+        
+        patience_hist.append(patience_count)
+
+        if patience_count > patience:
+            stopping_criteria = 'early-stoppage'
             if show_progress is not None:
-                print(f"Patience exceeded: {patience} . Early stoppage executed.")
+                print(f"Patience exceeded: {patience}. Early stoppage executed.")
             break
-        if save_path is not None:
-            _=_save_log_history(
+        
+        if save_folder is not None:
+            _ = _save_log_history(
                 losses,
                 times,
-                f"checkpoint-{epoch}",
-                best_model_epoch,
-                method_failures,
-                patience_hist,
-                log_save_path
+                stopping_criteria=f"checkpoint-{epoch}",
+                best_model_epoch=best_model_epoch,
+                method_status=status,
+                patience_hist=patience_hist,
+                lr_hist=lr_hist,
+                save_path = log_save_path
             )
         
     log_history = _save_log_history(
-        losses, 
-        times, 
-        stopping_criteria, 
-        best_model_epoch, 
-        method_failures,
+        losses,
+        times,
+        stopping_criteria,
+        best_model_epoch,
+        status,
         patience_hist,
-        log_save_path
+        lr_hist,
+        log_save_path,
     )
 
     return model, log_history
 
 
-def _save_model_opt_cpu(model:StabNODE, opt, epoch, loss, save_path:str):
+def _save_model_opt_cpu(model:StabNODE, opt, epoch, loss, save_path:str, scheduler = None):
     device = next(model.parameters()).device.type
     f = model.f
     g = model.g
@@ -277,8 +290,9 @@ def _save_model_opt_cpu(model:StabNODE, opt, epoch, loss, save_path:str):
         f_state = f_cpu.state_dict()
         g_state = g_cpu.state_dict()
         model_state = model_cpu.state_dict()
+    
 
-    torch.save({
+    checkpoint = {
         "f_state_dict": f_state,
         "g_state_dict": g_state,
         "stabnode_state_dict": model_state,
@@ -286,8 +300,55 @@ def _save_model_opt_cpu(model:StabNODE, opt, epoch, loss, save_path:str):
         "g_args":g_args,
         "opt_state_dict": opt.state_dict(),
         "epoch": epoch,
-        "loss": loss},
-        save_path)
+        "loss": loss,}
+
+    if scheduler is not None:
+        checkpoint["scheduler_state_dict"] = scheduler.state_dict()
+    
+
+    torch.save(checkpoint,save_path)
+    
+def _save_log_history(
+        losses,
+        times,
+        stopping_criteria,
+        best_model_epoch,
+        method_status,
+        patience_hist,
+        lr_hist,
+        save_path:str = None,
+):
+    log_history = {
+        "losses": losses,
+        "times": times,
+        "stopping_criteria": stopping_criteria,
+        "best_model_epoch": best_model_epoch,
+        "method_status": method_status,
+        "patience_hist": patience_hist,
+        "lr_hist": lr_hist
+    }
+
+    if save_path is not None:
+        with open(save_path, 'wb') as f: 
+            pickle.dump(log_history, f)
+    
+    return log_history
+
+
+def _create_save_paths(folder: str | Path):
+    if folder is None:
+        return None, None
+    
+    base_path = Path(folder)
+    base_path.mkdir(parents=True, exist_ok=True)  
+
+    
+    model_opt_path = base_path / "model_opt_states.pt"
+    log_path = base_path / "log_hist.pkl"
+
+    return str(model_opt_path), str(log_path)
+
+
 
 def _load_model_opt(save_path:str, device:str = 'cpu'):
     config = torch.load(save_path, map_location='cpu',weights_only=False)
@@ -308,40 +369,3 @@ def _load_model_opt(save_path:str, device:str = 'cpu'):
     loss = config["loss"]
 
     return model, opt, epoch, loss
-
-def _save_log_history(
-        losses,
-        times,
-        stopping_criteria,
-        best_model_epoch,
-        method_failures,
-        patience_hist,
-        save_path:str = None,
-):
-    log_history = {
-        "losses": losses,
-        "times": times,
-        "stopping_criteria": stopping_criteria,
-        "best_model_epoch": best_model_epoch,
-        "method_failures": method_failures,
-        "patience_hist": patience_hist,
-    }
-
-    if save_path is not None:
-        with open(save_path, 'wb') as f: 
-            pickle.dump(log_history, f)
-    
-    return log_history
-
-def _create_save_paths(path):
-    if path is None:
-        return None, None
-    base_path = Path(path)
-    folder = base_path.parent
-
-    if not folder.exists():
-        folder.mkdir(parents=True, exist_ok=True)
-    
-    model_path = base_path
-    log_path = folder / (base_path.stem+ "_log.pkl")
-    return str(model_path), str(log_path)
