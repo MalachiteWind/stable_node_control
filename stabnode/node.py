@@ -151,7 +151,8 @@ def model_trainer(
         show_progress:bool=True,
         scheduler: Optional[torch.optim.lr_scheduler._LRScheduler]=None,
         print_every: int=5,
-        _precision: int = 4
+        _precision: int = 4,
+        effective_batch_size: int = 10
 )-> Tuple[StabNODE,dict]:
     
     loop_wrapper = _load_loop_wrapper(show_progress)
@@ -168,12 +169,14 @@ def model_trainer(
     patience_hist = []
     lr_hist = []
     model.train()
+    max_iters = len(train_loader)
+     #this is training iteration counter to keep track of effective batch size.
     for epoch in loop_wrapper(range(n_epochs)):
         t1 = time.time()
         epoch_loss = 0.0
         num_batches = 0
         epochs_status = []
-        
+        iter_counter = 0
         for Xi, Ti, x0i in train_loader:
             Xi = Xi.squeeze() # [batch, time, dim]
             Ti = Ti.squeeze()
@@ -196,12 +199,21 @@ def model_trainer(
             Xi_pred = sol.ys.squeeze()
             loss = loss_criteria(Xi_pred, Xi)
 
-            loss.backward()
-            opt.step()
-            epoch_loss += loss.item()
-            num_batches += 1
 
-        
+            loss.backward()
+
+            iter_counter += 1
+            if effective_batch_size>= 1:
+                if (iter_counter+1)%effective_batch_size==0 or iter_counter>= max_iters:
+                    opt.step()
+                    opt.zero_grad()
+                    num_batches += 1
+            else:
+                opt.step()
+                opt.zero_grad()
+                num_batches += 1
+
+            epoch_loss+= loss.item()
         epoch_loss = epoch_loss / num_batches
         if scheduler is not None:
             scheduler.step(epoch_loss)
