@@ -14,6 +14,9 @@ def f_true(x):
     return -1*x / (1+x**2)
 
 def g_true(x,k,r):
+    """
+    g(x,k;r) = (r/k)*(1+x^2)(k-x)
+    """
     return -(r/k)*x**3 + r*x**2 -(r/k)*x +r 
 
 def dg_true(x,k,r):

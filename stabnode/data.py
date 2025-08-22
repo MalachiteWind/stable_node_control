@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import torch
 
@@ -27,3 +27,24 @@ class TrajectoryDataset(torch.utils.data.Dataset):
         x_window = self.X[idx : idx + self.window_size]           
 
         return x_window, t_window, x0
+    
+class TrialsDataset(torch.utils.data.Dataset):
+    def __init__(self, x_trials:List, t_trials:List,):
+        self.x_trials = x_trials            
+        self.t_trials = t_trials              
+
+    def __len__(self):
+        return len(self.x_trials) 
+
+    def __getitem__(self, idx):
+        if idx < 0 or idx >= self.__len__():
+            raise IndexError(
+                f"Index {idx} is out of bounds of dataset size: {self.__len__()}."
+            )
+        
+        
+        Xi = self.x_trials[idx]                                          
+        ti = self.t_trials[idx]  
+        x0 = Xi[0]           
+
+        return Xi,ti,x0
