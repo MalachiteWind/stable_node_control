@@ -12,7 +12,7 @@ from torchode import solve_ivp
 
 
 from pathlib import Path
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, Any
 from .utils import _load_loop_wrapper
 
 class GConstant(nn.Module):
@@ -214,6 +214,7 @@ def model_trainer(
         save_folder: str|Path=None,
         show_progress:bool=True,
         scheduler: Optional[torch.optim.lr_scheduler._LRScheduler]=None,
+        time_horizon_scheduler: Any = None,
         print_every: int=5,
         _precision: int = 4,
         effective_batch_size: int = 10
@@ -241,9 +242,23 @@ def model_trainer(
         num_batches = 0
         epochs_status = []
         iter_counter = 0
+
+        if time_horizon_scheduler is not None:
+            time_horizon = time_horizon_scheduler.get_time_horizon()
+        else: 
+            time_horizon = -1
+
         for Xi, Ti, x0i in train_loader:
-            Xi = Xi.squeeze() # [batch, time, dim]
+            Xi = Xi.squeeze()# [batch, time, dim]
             Ti = Ti.squeeze()
+
+            if time_horizon > len(Xi):
+                time_horizon = -1
+            
+            Xi = Xi[:time_horizon]
+            Ti = Ti[:time_horizon]
+            
+
             x0i = x0i.reshape(-1,1)
 
             if not x0i.requires_grad:
@@ -281,7 +296,10 @@ def model_trainer(
         epoch_loss = epoch_loss / num_batches
         if scheduler is not None:
             scheduler.step(epoch_loss)
-
+        
+        if time_horizon_scheduler is not None:
+            time_horizon_scheduler.step(epoch_loss)
+        
         cur_lr = opt.param_groups[0]['lr']
         epoch_time = time.time() - t1
 
@@ -292,7 +310,8 @@ def model_trainer(
 
         if show_progress:
             if epoch <= 5 or epoch % print_every == 0:
-                print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}f}. time = {epoch_time:.{_precision}f}s. lr = {cur_lr:.{_precision}f}")    
+                th_idx = time_horizon_scheduler.get_time_horizon()
+                print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}f}. time = {epoch_time:.{_precision}f}s. lr = {cur_lr:.{_precision}f}. time_horizon={th_idx}")    
         
         # model checks
         if best_loss - epoch_loss >= min_improvement:
