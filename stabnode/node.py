@@ -268,6 +268,8 @@ class GeluSigmoidMLPfeaturized(nn.Module):
         activation = torch.nn.SiLU(),
         lower_bound=0,
         upper_bound=1,
+        feat_lower_bound = 0,
+        feat_upper_bound = 1,
         freq_sample_step = 5
     ):
         super().__init__()
@@ -277,26 +279,71 @@ class GeluSigmoidMLPfeaturized(nn.Module):
         self.network = MLP(self.dims, activation = self.activation)
 
         self.freq_sample_step = freq_sample_step
-        self.featurization_dim = dims[0] - 2
-        self.freqs = torch.arange(0,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)
+        self.featurization_dim = dims[0] - 1
+        self.freqs = torch.arange(0,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)[1:]
         
 
         self.args = {
             "lower_bound": lower_bound,
-            "upper_bound": upper_bound
+            "upper_bound": upper_bound,
+            "feat_lower_bound": feat_lower_bound,
+            "feat_upper_bound": feat_upper_bound
         }
 
     def forward(self,x,u):
         a = self.args['lower_bound']
         b = self.args['upper_bound']
+        a_feat = self.args['feat_lower_bound']
+        b_feat = self.args['feat_upper_bound']
         x_feats = [x]
         for fq in self.freqs:
-            x_feats.append(torch.cos(fq**2*3.14*(x- a)/(b-a)))
+            x_feats.append(torch.cos(fq**2*3.14*(x- a_feat)/(b_feat-a_feat)))
         xf = torch.cat(x_feats,dim=-1)
         xu = torch.cat([xf,u],dim=-1)
 
 
         return a + (b-a)*torch.sigmoid(self.network(xu))
+    
+class FeluSigmoidMLPfeaturized(nn.Module):
+    def __init__(
+        self,
+        dims,
+        activation = torch.nn.SiLU(),
+        lower_bound=0,
+        upper_bound=1,
+        feat_lower_bound = 0,
+        feat_upper_bound = 1,
+        freq_sample_step = 5
+    ):
+        super().__init__()
+
+        self.dims = dims
+        self.activation = activation
+        self.network = MLP(self.dims, activation = self.activation)
+
+        self.freq_sample_step = freq_sample_step
+        self.featurization_dim = dims[0] 
+        self.freqs = torch.arange(0,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)[1:]
+        
+
+        self.args = {
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound,
+            "feat_lower_bound": feat_lower_bound,
+            "feat_upper_bound": feat_upper_bound
+        }
+
+    def forward(self,x):
+        a = self.args['lower_bound']
+        b = self.args['upper_bound']
+        a_feat = self.args["feat_lower_bound"]
+        b_feat = self.args["feat_upper_bound"]
+        x_feats = [x]
+        for fq in self.freqs:
+            x_feats.append(torch.cos(fq**2*3.14*(x- a_feat)/(b_feat-a_feat)))
+        xf = torch.cat(x_feats,dim=-1)
+
+        return a + (b-a)*torch.sigmoid(self.network(xf))
 
 
 
@@ -428,7 +475,7 @@ def model_trainer(
         lr_hist.append(cur_lr)
 
         if show_progress:
-            if epoch <= 5 or epoch % print_every == 0:
+            if epoch <= 5 or epoch % print_every == 0 or epoch == n_epochs-1:
                 print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}f}. time = {epoch_time:.{_precision}f}s. lr = {cur_lr:.{_precision}f}")    
         
         # model checks
