@@ -46,6 +46,32 @@ class FConstant(nn.Module):
         return a + (b-a)*torch.sigmoid(self.constant_value)
 
 
+
+class MLP(torch.nn.Module):
+    def __init__(self, dims, activation=torch.nn.SiLU(), dtype=torch.float):
+        # Base constructor
+        super().__init__()
+
+        # Store values
+        self.dims = list(dims)
+        self.activation = activation
+        self.dtype = dtype
+
+        # Create layers
+        self.layers = torch.nn.ModuleList([
+            torch.nn.Linear(input_dim, output_dim).to(self.dtype)
+            for input_dim, output_dim in zip(self.dims[:-1], self.dims[1:])
+        ])
+
+    def forward(self, x):
+        for layer in self.layers[:-1]:
+            x = self.activation(layer(x))
+        x = self.layers[-1](x)
+        return x
+
+
+
+
 class Gelu(nn.Module):
     def __init__(self, dim_in, dim_out, hidden_dim = 2):
         super().__init__()
@@ -179,6 +205,149 @@ class FeluSigmoid(nn.Module):
         a = self.args["lower_bound"]
         b = self.args["upper_bound"]
         return a + (b-a)*torch.sigmoid(self.network(x))
+    
+
+class FeluSigmoidMLP(nn.Module):
+    def __init__(
+            self, 
+            dims, 
+            activation=torch.nn.SiLU(),
+            lower_bound=0,
+            upper_bound=1
+        ):
+        super().__init__()
+        self.dims = dims
+        self.activation = activation
+        self.network = MLP(self.dims, activation = self.activation)
+
+        self.args = {
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound
+        }
+        
+    def forward(self,x):
+        a = self.args["lower_bound"]
+        b = self.args["upper_bound"]
+        return a + (b-a)*torch.sigmoid(self.network(x))
+    
+
+
+
+class GeluSigmoidMLP(nn.Module):
+    def __init__(
+        self,
+        dims,
+        activation = torch.nn.SiLU(),
+        lower_bound=0,
+        upper_bound=1
+    ):
+        super().__init__()
+
+        self.dims = dims
+        self.activation = activation
+        self.network = MLP(self.dims, activation = self.activation)
+
+        self.args = {
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound
+        }
+
+    def forward(self,x,u):
+        xu = torch.cat([x,u],dim=-1)
+        a = self.args['lower_bound']
+        b = self.args['upper_bound']
+
+        return a + (b-a)*torch.sigmoid(self.network(xu))
+    
+
+
+class GeluSigmoidMLPfeaturized(nn.Module):
+    def __init__(
+        self,
+        dims,
+        activation = torch.nn.SiLU(),
+        lower_bound=0,
+        upper_bound=1,
+        feat_lower_bound = 0,
+        feat_upper_bound = 1,
+        freq_sample_step = 5
+    ):
+        super().__init__()
+
+        self.dims = dims
+        self.activation = activation
+        self.network = MLP(self.dims, activation = self.activation)
+
+        self.freq_sample_step = freq_sample_step
+        self.featurization_dim = dims[0] - 1
+        self.freqs = torch.arange(self.freq_sample_step,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)
+        
+
+        self.args = {
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound,
+            "feat_lower_bound": feat_lower_bound,
+            "feat_upper_bound": feat_upper_bound
+        }
+
+    def forward(self,x,u):
+        a = self.args['lower_bound']
+        b = self.args['upper_bound']
+        a_feat = self.args['feat_lower_bound']
+        b_feat = self.args['feat_upper_bound']
+        x_feats = [x]
+        for fq in self.freqs:
+            x_feats.append(torch.cos(fq**2*3.14*(x- a_feat)/(b_feat-a_feat)))
+        xf = torch.cat(x_feats,dim=-1)
+        xu = torch.cat([xf,u],dim=-1)
+
+
+        return a + (b-a)*torch.sigmoid(self.network(xu))
+    
+class FeluSigmoidMLPfeaturized(nn.Module):
+    def __init__(
+        self,
+        dims,
+        activation = torch.nn.SiLU(),
+        lower_bound=0,
+        upper_bound=1,
+        feat_lower_bound = 0,
+        feat_upper_bound = 1,
+        freq_sample_step = 5
+    ):
+        super().__init__()
+
+        self.dims = dims
+        self.activation = activation
+        self.network = MLP(self.dims, activation = self.activation)
+
+        self.freq_sample_step = freq_sample_step
+        self.featurization_dim = dims[0] 
+        self.freqs = torch.arange(self.freq_sample_step,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)
+        
+
+        self.args = {
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound,
+            "feat_lower_bound": feat_lower_bound,
+            "feat_upper_bound": feat_upper_bound
+        }
+
+    def forward(self,x):
+        a = self.args['lower_bound']
+        b = self.args['upper_bound']
+        a_feat = self.args["feat_lower_bound"]
+        b_feat = self.args["feat_upper_bound"]
+        x_feats = [x]
+        for fq in self.freqs:
+            x_feats.append(torch.cos(fq**2*3.14*(x- a_feat)/(b_feat-a_feat)))
+        xf = torch.cat(x_feats,dim=-1)
+
+        return a + (b-a)*torch.sigmoid(self.network(xf))
+
+
+
+
 
 class StabNODE(nn.Module):
     def __init__(self,f:Felu,g:Gelu):
@@ -216,7 +385,9 @@ def model_trainer(
         scheduler: Optional[torch.optim.lr_scheduler._LRScheduler]=None,
         print_every: int=5,
         _precision: int = 4,
-        effective_batch_size: int = 10
+        effective_batch_size: int = 10,
+        train_dyn = True,
+        exp_loss_time_decay = 0
 )-> Tuple[StabNODE,dict]:
     
     loop_wrapper = _load_loop_wrapper(show_progress)
@@ -252,17 +423,30 @@ def model_trainer(
 
             opt.zero_grad()
 
-            sol = solve_ivp(
-                f=lambda t, x: model(t, x, control),
-                y0=x0i,
-                t_eval=Ti,
-                method=solve_method
-            )
 
-            epochs_status.append(sol.status)
-            Xi_pred = sol.ys.squeeze()
-            loss = loss_criteria(Xi_pred, Xi)
+            if train_dyn == True:
+                sol = solve_ivp(
+                    f=lambda t, x: model(t, x, control),
+                    y0=x0i,
+                    t_eval=Ti,
+                    method=solve_method
+                )
 
+                epochs_status.append(sol.status)
+                Xi_pred = sol.ys.squeeze()
+                loss = loss_criteria(Xi_pred*torch.exp(-exp_loss_time_decay*Ti), Xi*torch.exp(-exp_loss_time_decay*Ti))
+
+            Xi = Xi.unsqueeze(-1)
+            cntrl = control(Ti)
+            cntrl = torch.reshape(cntrl,(1,1))
+            cntrl = cntrl.repeat(Xi.shape[0],1)
+            g_id_loss = 100*loss_criteria(model.g(Xi,cntrl),Xi)
+
+            if train_dyn == True:
+                #loss = loss +  g_id_loss
+                loss = loss
+            else:
+                loss = g_id_loss
 
             loss.backward()
 
@@ -291,7 +475,7 @@ def model_trainer(
         lr_hist.append(cur_lr)
 
         if show_progress:
-            if epoch <= 5 or epoch % print_every == 0:
+            if epoch <= 5 or epoch % print_every == 0 or epoch == n_epochs-1:
                 print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}f}. time = {epoch_time:.{_precision}f}s. lr = {cur_lr:.{_precision}f}")    
         
         # model checks
