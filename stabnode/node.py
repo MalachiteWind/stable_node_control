@@ -280,7 +280,7 @@ class GeluSigmoidMLPfeaturized(nn.Module):
 
         self.freq_sample_step = freq_sample_step
         self.featurization_dim = dims[0] - 1
-        self.freqs = torch.arange(0,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)[1:]
+        self.freqs = torch.arange(self.freq_sample_step,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)
         
 
         self.args = {
@@ -323,7 +323,7 @@ class FeluSigmoidMLPfeaturized(nn.Module):
 
         self.freq_sample_step = freq_sample_step
         self.featurization_dim = dims[0] 
-        self.freqs = torch.arange(0,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)[1:]
+        self.freqs = torch.arange(self.freq_sample_step,self.featurization_dim*self.freq_sample_step,self.freq_sample_step)
         
 
         self.args = {
