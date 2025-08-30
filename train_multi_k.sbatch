@@ -3,7 +3,6 @@
 #SBATCH -t 60:00:00
 #SBATCH -p dl_shared
 #SBATCH -J multi_k_training
-#SBATCH --gres=gpu:1
 #SBATCH -N 1
 #SBATCH -e slurm_output/slurm-%j.err
 #SBATCH -o slurm_output/slurm-%j.out
