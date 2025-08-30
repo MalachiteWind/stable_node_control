@@ -388,8 +388,12 @@ def model_trainer(
         _precision: int = 4,
         effective_batch_size: int = 10,
         train_dyn = True,
-        exp_scheduler: Optional[ExpLossTimeDecayScheduler] = None
+        decay_scheduler: Optional[ExpLossTimeDecayScheduler] = None,
+        decay_val:int = 0.0
 )-> Tuple[StabNODE,dict]:
+    """
+    if decay_scheduler is given, this takes priority over decay_val.
+    """
     
     loop_wrapper = _load_loop_wrapper(show_progress)
     model_opt_save_path, log_save_path = _create_save_paths(save_folder)
@@ -414,14 +418,15 @@ def model_trainer(
         num_batches = 0
         epochs_status = []
         iter_counter = 0
-        for Xi, Ti, x0i in train_loader:
+        for Xi, Ti, x0i, ki in train_loader:
             Xi = Xi.squeeze() # [batch, time, dim]
             Ti = Ti.squeeze()
-            x0i = x0i.reshape(-1,1)
+            x0i = x0i.view(-1,1)
 
             if not x0i.requires_grad:
                 x0i = x0i.clone().detach().requires_grad_()
 
+            control = lambda t: ki
 
             opt.zero_grad()
 
@@ -436,9 +441,8 @@ def model_trainer(
 
                 epochs_status.append(sol.status)
 
-                decay_val = 0.0
-                if exp_scheduler is not None:
-                    decay_val = exp_scheduler.get_alpha() 
+                if decay_scheduler is not None:
+                    decay_val = decay_scheduler.get_alpha() 
 
                 Xi_pred = sol.ys.squeeze()
                 loss = loss_criteria(
@@ -474,14 +478,14 @@ def model_trainer(
             epoch_loss+= loss.item()
         epoch_loss = epoch_loss / num_batches
 
-        if exp_scheduler is not None:
-            exp_scheduler.step(epoch_loss)
+        if decay_scheduler is not None:
+            decay_scheduler.step(epoch_loss)
 
-            if exp_scheduler.get_alpha() == 0.0 and scheduler is not None:
+            if decay_scheduler.get_alpha() == 0.0 and scheduler is not None:
                 scheduler.step(epoch_loss)
      
         cur_lr = opt.param_groups[0]['lr']
-        cur_alpha = exp_scheduler.get_alpha()
+        cur_alpha = decay_scheduler.get_alpha() if decay_scheduler is not None else decay_val
 
         epoch_time = time.time() - t1
 
