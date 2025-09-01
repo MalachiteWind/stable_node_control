@@ -67,10 +67,10 @@ def main(args):
     # DATA GENERATION
     # -----------------------------------------------------------------
     trials = {}
-    for idx, ki in enumerate(tqdm(k_vals, desc="Simulating k values")):
+    for idx, ki in enumerate(k_vals):
         ki_traj, ki_times = [], []
 
-        for x0 in tqdm(xs, leave=False, desc=f"k={ki}"):
+        for x0 in xs:
             trial = simulate_trials(
                 [ki],
                 x0,

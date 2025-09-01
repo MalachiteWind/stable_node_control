@@ -483,6 +483,9 @@ def model_trainer(
 
             if decay_scheduler.get_alpha() == 0.0 and scheduler is not None:
                 scheduler.step(epoch_loss)
+                
+        elif scheduler is not None:
+            scheduler.step(epoch_loss)
      
         cur_lr = opt.param_groups[0]['lr']
         cur_alpha = decay_scheduler.get_alpha() if decay_scheduler is not None else decay_val
