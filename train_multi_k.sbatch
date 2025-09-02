@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -A atscale
 #SBATCH -t 100:00:00
-#SBATCH -p dl_shared
+#SBATCH -p slurm
 #SBATCH -J multi_k_training
 #SBATCH -N 1
 #SBATCH -e slurm_output/slurm-%j.err
