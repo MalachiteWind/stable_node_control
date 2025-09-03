@@ -4,9 +4,11 @@ import torch.nn as nn
 import numpy as np
 import pandas as pd
 
+from pathlib import Path
 from typing import List
 from tqdm.auto import tqdm
 from sklearn.preprocessing import MinMaxScaler
+from sympy import symbols, Eq, solve, simplify
 
 # Local imports
 from data.budworm import simulate_trials, budworm_steady_states
@@ -20,6 +22,8 @@ from stabnode.node import (
     GeluSigmoidMLP,
     GeluSigmoidMLPfeaturized,
     FeluSigmoidMLPfeaturized,
+    _save_model_opt_cpu,
+    _save_log_history
 )
 
 # =====================================================================
@@ -48,6 +52,32 @@ class TrialsDataset(torch.utils.data.Dataset):
 
         return Xi, ti, x0, ki
 
+# ================
+# Create smooth_k
+# ================
+
+r, k = symbols('r k', positive=True)
+a = r/k
+b = -r
+c = (k+r)/k
+d = -r
+p = (3*a*c-b**2) / (3*a**2)
+q = (2*b**3 - 9*a*b*c+27*a**2*d) / (27*a**3)
+
+D = - (4*p**3 + 27*q**2)
+D = simplify(D)
+
+
+D_fixed = D.subs(r, 0.56)
+r1, r2 = solve(Eq(D_fixed, 0), k)
+print(r1,r2)
+
+k1 = r1-1.1
+k2 = r2+1.1
+
+def smooth_k(t):
+    A = (k2-k1)/2
+    return A*np.sin(t-np.pi/2)+A + k1
 
 # =====================================================================
 # MAIN PIPELINE
@@ -58,11 +88,16 @@ def main(args):
     # CONFIGURATION
     # -----------------------------------------------------------------
     device = "cpu"
-    set_global_seed(1234)
+    set_global_seed(args.seed)
 
     # Simulation parameters
-    k_vals = [5.5, 6.3, 7.5, 8.5, 11.0]  # carrying capacities
-    xs = np.linspace(0.1, 10, 51)
+    sample_rate = 13
+    t_span = np.linspace(0,2/2*np.pi,251)
+    t_trials = t_span[::sample_rate]
+    k_vals = smooth_k(t_trials)
+    traj_per_k = 25
+
+    xs = np.linspace(0.1, 10, traj_per_k)
 
     # -----------------------------------------------------------------
     # DATA GENERATION
@@ -193,6 +228,21 @@ def main(args):
     print("Training complete")
     if args.save_folder:
         print(f"Model/logs saved in: {args.save_folder}")
+        base_path = Path(args.save_folder)
+        base_path.mkdir(parents=True, exist_ok=True)
+
+        model_opt_path_final = base_path / "model_opt_states_final.pt"
+
+        _save_model_opt_cpu(
+            model=model,
+            opt=opt,
+            epoch=args.epochs,
+            loss=log_history["losses"][-1],
+            save_path=model_opt_path_final,
+            scheduler=scheduler
+        )
+
+
     # return model, log_history
 
 
