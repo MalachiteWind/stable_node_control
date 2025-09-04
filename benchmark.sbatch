@@ -2,7 +2,7 @@
 #SBATCH -A atscale
 #SBATCH -t 100:00:00
 #SBATCH -p slurm
-#SBATCH -J dense_k_training
+#SBATCH -J benchmark_training
 #SBATCH -N 1
 #SBATCH -e slurm_output/slurm-%j.err
 #SBATCH -o slurm_output/slurm-%j.out
