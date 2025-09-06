@@ -10,6 +10,7 @@ from torch.optim import Optimizer
 from torchdiffeq import odeint
 from torchode import solve_ivp
 
+from stabnode.schedulers import ExpLossTimeDecayScheduler
 
 from pathlib import Path
 from typing import Optional, Callable, Tuple
@@ -387,8 +388,12 @@ def model_trainer(
         _precision: int = 4,
         effective_batch_size: int = 10,
         train_dyn = True,
-        exp_loss_time_decay = 0
+        decay_scheduler: Optional[ExpLossTimeDecayScheduler] = None,
+        decay_val:int = 0.0
 )-> Tuple[StabNODE,dict]:
+    """
+    if decay_scheduler is given, this takes priority over decay_val.
+    """
     
     loop_wrapper = _load_loop_wrapper(show_progress)
     model_opt_save_path, log_save_path = _create_save_paths(save_folder)
@@ -403,6 +408,7 @@ def model_trainer(
     status = []
     patience_hist = []
     lr_hist = []
+    alpha_hist = []
     model.train()
     max_iters = len(train_loader)
      #this is training iteration counter to keep track of effective batch size.
@@ -412,14 +418,15 @@ def model_trainer(
         num_batches = 0
         epochs_status = []
         iter_counter = 0
-        for Xi, Ti, x0i in train_loader:
+        for Xi, Ti, x0i, ki in train_loader:
             Xi = Xi.squeeze() # [batch, time, dim]
             Ti = Ti.squeeze()
-            x0i = x0i.reshape(-1,1)
+            x0i = x0i.view(-1,1)
 
             if not x0i.requires_grad:
                 x0i = x0i.clone().detach().requires_grad_()
 
+            control = lambda t: ki
 
             opt.zero_grad()
 
@@ -433,8 +440,15 @@ def model_trainer(
                 )
 
                 epochs_status.append(sol.status)
+
+                if decay_scheduler is not None:
+                    decay_val = decay_scheduler.get_alpha() 
+
                 Xi_pred = sol.ys.squeeze()
-                loss = loss_criteria(Xi_pred*torch.exp(-exp_loss_time_decay*Ti), Xi*torch.exp(-exp_loss_time_decay*Ti))
+                loss = loss_criteria(
+                    Xi_pred*torch.exp(-decay_val*Ti), 
+                    Xi*torch.exp(-decay_val*Ti)
+                )
 
             Xi = Xi.unsqueeze(-1)
             cntrl = control(Ti)
@@ -463,10 +477,19 @@ def model_trainer(
 
             epoch_loss+= loss.item()
         epoch_loss = epoch_loss / num_batches
-        if scheduler is not None:
-            scheduler.step(epoch_loss)
 
+        if decay_scheduler is not None:
+            decay_scheduler.step(epoch_loss)
+
+            if decay_scheduler.get_alpha() == 0.0 and scheduler is not None:
+                scheduler.step(epoch_loss)
+                
+        elif scheduler is not None:
+            scheduler.step(epoch_loss)
+     
         cur_lr = opt.param_groups[0]['lr']
+        cur_alpha = decay_scheduler.get_alpha() if decay_scheduler is not None else decay_val
+
         epoch_time = time.time() - t1
 
         losses.append(epoch_loss)
@@ -476,7 +499,7 @@ def model_trainer(
 
         if show_progress:
             if epoch <= 5 or epoch % print_every == 0 or epoch == n_epochs-1:
-                print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}f}. time = {epoch_time:.{_precision}f}s. lr = {cur_lr:.{_precision}f}")    
+                print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}f}. time = {epoch_time:.{_precision}f}s. lr = {cur_lr:.{_precision}f}. alpha = {cur_alpha:.{_precision}f}")    
         
         # model checks
         if best_loss - epoch_loss >= min_improvement:
