@@ -1,0 +1,7 @@
+Submitted job 9731368 for alpha=1.0 (logs: slurm_output/slurm-alpha_1p0-%j.out)
+Submitted job 9731369 for alpha=0.5 (logs: slurm_output/slurm-alpha_0p5-%j.out)
+Submitted job 9731370 for alpha=0.25 (logs: slurm_output/slurm-alpha_0p25-%j.out)
+Submitted job 9731371 for alpha=0.125 (logs: slurm_output/slurm-alpha_0p125-%j.out)
+Submitted job 9731372 for alpha=0.0625 (logs: slurm_output/slurm-alpha_0p0625-%j.out)
+Submitted job 9731373 for alpha=0.03125 (logs: slurm_output/slurm-alpha_0p03125-%j.out)
+Submitted job 9731374 for alpha=0.0 (logs: slurm_output/slurm-alpha_0p0-%j.out)
