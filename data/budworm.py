@@ -78,7 +78,18 @@ class BudwormTrials:
     __repr__ = __str__  
 
 
-def simulate_trials(ks, x0, dt, r,eps,buffer, t_max, n_points,show_progress:bool=True):
+def simulate_trials(
+        ks: List[float], 
+        x0:float, 
+        dt:float, 
+        r:float,
+        t_max:float=400,
+        eps:float=1e-3,
+        buffer:float=1e-1, 
+        n_points:int=501,
+        show_progress:bool=True
+    )->BudwormTrials:
+    
     x_curr = x0
 
     x_vals = []

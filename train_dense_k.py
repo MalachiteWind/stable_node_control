@@ -196,6 +196,15 @@ def main(args):
 
     model = StabNODE(f, g).to(device)
 
+    # =================================================================
+    # Load params if provided
+    # =================================================================
+    if args.model_config is not None:
+        config = torch.load(args.model_config,map_location='cpu',weights_only=False)
+        f.load_state_dict(config["f_state_dict"])
+        g.load_state_dict(config["g_state_dict"])
+        model.load_state_dict(config["stabnode_state_dict"])
+
     # -----------------------------------------------------------------
     # TRAINING
     # -----------------------------------------------------------------
@@ -261,6 +270,9 @@ if __name__ == "__main__":
                         help="Folder to save model and logs (default: None)")
     parser.add_argument("--decay_val", type=float, default=0.8,
                         help="Decay value for scheduler (default: 0.8)")
+    
+    parser.add_argument("--model_config", type=str,default=None,
+                    help="Path to saved model config (.pt) for warm start.")
 
     parser.add_argument("--seed", type=int, default=1234,
                     help="Global randomness seed")
