@@ -439,7 +439,7 @@ def model_trainer(
                     method=solve_method
                 )
 
-                epochs_status.append(sol.status)
+                epochs_status.append(sol.status.item())
 
                 if decay_scheduler is not None:
                     decay_val = decay_scheduler.get_alpha() 
