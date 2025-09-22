@@ -497,7 +497,13 @@ def model_trainer(
 
         if show_progress:
             if epoch <= 5 or epoch % print_every == 0 or epoch == n_epochs-1:
-                print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}e}. time = {epoch_time:.{_precision}e}s. lr = {cur_lr:.{_precision}e}. alpha = {cur_alpha:.{_precision}e}")    
+                print(
+                    f"Epoch {epoch}: "
+                    f"Loss = {epoch_loss:.{_precision}e}. "
+                    f"time = {epoch_time:.{_precision}e}s. "
+                    f"lr = {cur_lr:.{_precision}e}. "
+                    f"alpha = {cur_alpha:.{_precision}e}"
+                )  
         
         # model checks
         if best_loss - epoch_loss >= min_improvement:
