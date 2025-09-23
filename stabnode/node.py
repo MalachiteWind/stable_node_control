@@ -387,7 +387,7 @@ def model_trainer(
         effective_batch_size: int = 10,
         train_dyn = True,
         decay_scheduler: Optional[ExpLossTimeDecayScheduler] = None,
-        decay_val:int = 0.0
+        decay_val:float = 0.0
 )-> Tuple[StabNODE,dict]:
     """
     if decay_scheduler is given, this takes priority over decay_val.
