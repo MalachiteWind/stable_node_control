@@ -54,8 +54,6 @@ def two_tank_system(t,x,u):
 p_vals = np.linspace(0,1,101)
 v_vals = np.linspace(0,1,101)
 
-p_train = p_vals[10:-10:10]
-v_train = v_vals[10:-10:10]
 
 
 def main(args):
@@ -65,11 +63,14 @@ def main(args):
     num_x0s = 21
     x0s = np.linspace(0,1,num_x0s)
 
-    t_max = 100
+    t_max = args.t_max
     n_colloc = 301
 
     plotting_rate = 1
     cutoff = None
+
+    p_train = p_vals[10:-10:args.trial_rate]
+    v_train = v_vals[10:-10:args.trial_rate]
 
     x_trials = [] 
     t_trials = []
@@ -373,6 +374,12 @@ if __name__ == "__main__":
     
     parser.add_argument("--batch_size",type=int,default=1,
                         help="Training batchsize")
+    
+    parser.add_argument("--t_max", type=float,default=100.,
+                        help="max time-horizon for training trajectories")
+    
+    parser.add_argument("--trial_rate",type=int,default=10,
+                        help="Rate of determining number of trials for p and v")
     
     parser.add_argument("--model_config", type=str,default=None,
                     help="Path to saved model config (.pt) for warm start.")
