@@ -1,0 +1,3 @@
+Experiment to more smaller trial set. 5x5 control, u, configs. 
+
+With 21 trajectories of t_max =50.

@@ -42,21 +42,21 @@ echo "Using Conda environment: $(conda info --envs | grep '*' | awk '{print $1}'
 
 
 # ----------------------------------------------------------------------
-# EXPERIMENTS (Scarce observations)
+# EXPERIMENTS (t_max observations)
 # ----------------------------------------------------------------------
 SAVE_DIR="results/mixing_tanks_batch_sweep_scarce_2"
 mkdir -p "$SAVE_DIR"
 
 echo "Starting experiment with t_max=25"
-python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/batch_50" --decay_val 0.0 --seed 1234 --t_max 25.0 --trial_rate 20
+python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_25" --decay_val 0.0 --seed 1234 --t_max 25.0 --trial_rate 20
 echo "Finished experiment with t_max=25"
 
 echo "Starting experiment with t_max=40"
-python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/batch_100" --decay_val 0.0 --seed 1234 --t_max 40.0 --trial_rate 20
+python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_40" --decay_val 0.0 --seed 1234 --t_max 40.0 --trial_rate 20
 echo "Finished experiment with t_max=40"
 
 echo "Starting experiment with t_max=75"
-python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/batch_150" --decay_val 0.0 --seed 1234 --t_max 75.0 --trial_rate 20
+python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_75" --decay_val 0.0 --seed 1234 --t_max 75.0 --trial_rate 20
 echo "Finished experiment with t_max=75"
 
 echo "All experiments finished."
