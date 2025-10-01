@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A atscale
-#SBATCH -t 20:00:00
+#SBATCH -t 25:00:00
 #SBATCH -p slurm
 #SBATCH -J g_bounds
 #SBATCH -N 1
