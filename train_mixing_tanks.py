@@ -113,7 +113,7 @@ def main(args):
     dataloader = torch.utils.data.DataLoader(dataset,batch_size=args.batch_size,shuffle=shuffle)
 
     f = FeluSigmoidMLP(dims=[2,10,10,2],lower_bound=-1, upper_bound=0)
-    g = GeluSigmoidMLP(dims=[4,10,10,2],lower_bound=0, upper_bound=1)
+    g = GeluSigmoidMLP(dims=[4,10,10,2],lower_bound=args.g_min, upper_bound=args.g_max)
     model = StabNODE(f,g).to(device)
     
     # =================================================================
@@ -380,6 +380,12 @@ if __name__ == "__main__":
     
     parser.add_argument("--trial_rate",type=int,default=10,
                         help="Rate of determining number of trials for p and v")
+    
+    parser.add_argument("--g_min",type=float,default=0.0,
+                        help="lower bound for g function")
+    
+    parser.add_argument("--g_max",type=float,default=1.0,
+                    help="upper bound for g function")
     
     parser.add_argument("--model_config", type=str,default=None,
                     help="Path to saved model config (.pt) for warm start.")

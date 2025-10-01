@@ -2,7 +2,7 @@
 #SBATCH -A atscale
 #SBATCH -t 20:00:00
 #SBATCH -p slurm
-#SBATCH -J scarce_mixing_tanks_batch_sweep
+#SBATCH -J g_bounds
 #SBATCH -N 1
 #SBATCH -e slurm_output/slurm-%j.err
 #SBATCH -o slurm_output/slurm-%j.out
@@ -44,19 +44,40 @@ echo "Using Conda environment: $(conda info --envs | grep '*' | awk '{print $1}'
 # ----------------------------------------------------------------------
 # EXPERIMENTS (t_max observations)
 # ----------------------------------------------------------------------
-SAVE_DIR="results/mixing_tanks_batch_sweep_scarce_2"
+# SAVE_DIR="results/mixing_tanks_batch_sweep_scarce_2"
+# mkdir -p "$SAVE_DIR"
+
+# echo "Starting experiment with t_max=25"
+# python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_25" --decay_val 0.0 --seed 1234 --t_max 25.0 --trial_rate 20
+# echo "Finished experiment with t_max=25"
+
+# echo "Starting experiment with t_max=40"
+# python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_40" --decay_val 0.0 --seed 1234 --t_max 40.0 --trial_rate 20
+# echo "Finished experiment with t_max=40"
+
+# echo "Starting experiment with t_max=75"
+# python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_75" --decay_val 0.0 --seed 1234 --t_max 75.0 --trial_rate 20
+# echo "Finished experiment with t_max=75"
+
+# ----------------------------------------------------------------------
+# small batch_size + varying g bounds
+# ----------------------------------------------------------------------
+SAVE_DIR="results/g_bounds"
 mkdir -p "$SAVE_DIR"
 
-echo "Starting experiment with t_max=25"
-python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_25" --decay_val 0.0 --seed 1234 --t_max 25.0 --trial_rate 20
-echo "Finished experiment with t_max=25"
+echo "Starting experiment with g_min=0 g_max=1"
+python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 25 --save_folder "$SAVE_DIR/g_0_1" --decay_val 0.0 --seed 1234 --t_max 100.0 --trial_rate 10 --g_min=0.0 --g_max=1.0
+echo "Finished experiment with g_min=0 g_max=1"
 
-echo "Starting experiment with t_max=40"
-python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_40" --decay_val 0.0 --seed 1234 --t_max 40.0 --trial_rate 20
-echo "Finished experiment with t_max=40"
+echo "Starting experiment with g_min=-5 g_max=5"
+python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 25 --save_folder "$SAVE_DIR/g_5_5" --decay_val 0.0 --seed 1234 --t_max 100.0 --trial_rate 10 --g_min=-5.0 --g_max=5.0
+echo "Finished experiment with g_min=-5 g_max=5"
 
-echo "Starting experiment with t_max=75"
-python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 50 --save_folder "$SAVE_DIR/t_max_75" --decay_val 0.0 --seed 1234 --t_max 75.0 --trial_rate 20
-echo "Finished experiment with t_max=75"
+echo "Starting experiment with g_min=-10 g_max=10"
+python train_mixing_tanks.py --epochs 1000 --lr 1e-2 --batch_size 25 --save_folder "$SAVE_DIR/g_10_10" --decay_val 0.0 --seed 1234 --t_max 100.0 --trial_rate 10 --g_min=-10.0 --g_max=10.0
+echo "Finished experiment with g_min=-10 g_max=10"
+
+
+
 
 echo "All experiments finished."
