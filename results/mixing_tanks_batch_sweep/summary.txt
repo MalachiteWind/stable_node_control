@@ -1,0 +1,4 @@
+Initial sweep of varying batch sizes for trianing on dense observations
+
+9x9 configs of control, u, with 21 trajectories per trial per tank to 
+t_max = 100.

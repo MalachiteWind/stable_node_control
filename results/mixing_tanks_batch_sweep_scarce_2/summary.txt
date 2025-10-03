@@ -1,0 +1,2 @@
+Second mixing-tanks sweep for fixed batch size 50, but varying 
+time lengths of t_max. Still 25 trials of control configs. 

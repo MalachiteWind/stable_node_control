@@ -32,7 +32,7 @@ class GConstant(nn.Module):
         return a + (b-a)*torch.sigmoid(self.constant_value)
 
 class FConstant(nn.Module):
-    def __init__(self,lower_bound=0, upper_bound=1, initial_guess=0.0):
+    def __init__(self,lower_bound=-1, upper_bound=0, initial_guess=0.0):
         super().__init__()
         self.constant_value = nn.Parameter(torch.tensor(initial_guess))
         self.args = {
@@ -183,8 +183,8 @@ class FeluSigmoid(nn.Module):
             dim_in, 
             dim_out, 
             hidden_dim = 2,
-            lower_bound=0,
-            upper_bound=1
+            lower_bound=-1,
+            upper_bound=0
         ):
         super().__init__()
 
@@ -213,8 +213,8 @@ class FeluSigmoidMLP(nn.Module):
             self, 
             dims, 
             activation=torch.nn.SiLU(),
-            lower_bound=0,
-            upper_bound=1
+            lower_bound=-1,
+            upper_bound=0
         ):
         super().__init__()
         self.dims = dims
@@ -310,8 +310,8 @@ class FeluSigmoidMLPfeaturized(nn.Module):
         self,
         dims,
         activation = torch.nn.SiLU(),
-        lower_bound=0,
-        upper_bound=1,
+        lower_bound=-1,
+        upper_bound=0,
         feat_lower_bound = 0,
         feat_upper_bound = 1,
         freq_sample_step = 5
@@ -345,8 +345,6 @@ class FeluSigmoidMLPfeaturized(nn.Module):
         xf = torch.cat(x_feats,dim=-1)
 
         return a + (b-a)*torch.sigmoid(self.network(xf))
-
-
 
 
 
@@ -389,7 +387,7 @@ def model_trainer(
         effective_batch_size: int = 10,
         train_dyn = True,
         decay_scheduler: Optional[ExpLossTimeDecayScheduler] = None,
-        decay_val:int = 0.0
+        decay_val:float = 0.0
 )-> Tuple[StabNODE,dict]:
     """
     if decay_scheduler is given, this takes priority over decay_val.
@@ -499,7 +497,13 @@ def model_trainer(
 
         if show_progress:
             if epoch <= 5 or epoch % print_every == 0 or epoch == n_epochs-1:
-                print(f"Epoch {epoch}: Loss: {epoch_loss:.{_precision}e}. time = {epoch_time:.{_precision}e}s. lr = {cur_lr:.{_precision}e}. alpha = {cur_alpha:.{_precision}e}")    
+                print(
+                    f"Epoch {epoch}: "
+                    f"Loss = {epoch_loss:.{_precision}e}. "
+                    f"time = {epoch_time:.{_precision}e}s. "
+                    f"lr = {cur_lr:.{_precision}e}. "
+                    f"alpha = {cur_alpha:.{_precision}e}"
+                )  
         
         # model checks
         if best_loss - epoch_loss >= min_improvement:
